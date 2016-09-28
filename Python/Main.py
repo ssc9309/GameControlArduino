@@ -18,9 +18,9 @@ import serial
 from time import sleep
 
 
-def click(x,y):
+def MouseMove(x,y):
     win32api.SetCursorPos((x,y))
-    win32api.mouse_event(win32con.MOUSEEVENTF_WHEEL,x,y,0,0)
+    win32api.mouse_event(win32con.MOUSEEVENTF_MOVE,x,y,0,0)
     #win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN,x,y,0,0)
     #win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP,x,y,0,0)
 
@@ -33,45 +33,80 @@ def LeftClickMethod():
 
 x = 0
 y = 0
-arduino = serial.Serial('COM6', 115200, timeout=.1)
+arduino = serial.Serial('COM4', 250000, timeout=.1)
 
 leftClickState = "off"
 
-#while (x <= 500):
+isArduinoConnected = False
+isArduinoMoved = False
+lastArduinoPitch = 999 #-90 to 90
+lastArduinoYaw = 999 #0 to 360
+
+arduinoPitchGain = 20
+arduinoYawGain = 20
+
+deltaYaw = 0
+deltaPitch = 0
+
 while (True):
-
-    '''
-    if (x < 200):
-        y = 0
-
-    #elif (x < 300):
-        #y = 500
-    else:
-        #y = 1000
-        y += 10
-        #print (y)
-
-    #click(x,y)
-    x += 10
-    '''
-
+    #csv
+    #0,3,3,3,3,331.06,18.56
     data = arduino.readline()[:-2] #the last bit gets rid of the new-line chars
-    if data:
-        #print (data)
+    #formatting
+    dataString = str(data)
+    dataString = dataString[2:-1]
+    #print(dataString)
 
-        if ("1" in str(data)):
+    if "," in dataString:
+        if not (isArduinoConnected):
+            print("Arduino Message Received")
+            isArduinoConnected = True
+
+        csvArray = dataString.split(',')
+        arduinoLeftClick = csvArray[0]
+        arduinoYaw = float(csvArray[5])
+        arduinoPitch = float(csvArray[6])
+        #print(arduinoYaw)
+
+    #csvArray = data.split(',')
+
+
+    if isArduinoConnected:
+        if ("1" in arduinoLeftClick):
             if (leftClickState == "off"):
                 win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN,0,0,0,0)
-                win32api.mouse_event(win32con.MOUSEEVENTF_MOVE,10,0,0,0)
-
                 leftClickState = "on"
                 print("Left Down")
-        elif ("0" in str(data)):
+        elif ("0" in arduinoLeftClick):
             if (leftClickState == "on"):
                 win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP,0,0,0,0)
                 leftClickState = "off"
                 print("Left Up")
 
+        if (lastArduinoPitch != arduinoPitch):
+            if (lastArduinoPitch == 999):
+                lastArduinoPitch = arduinoPitch
+            else:
+                deltaPitch = lastArduinoPitch - arduinoPitch
+                deltaPitch = int(deltaPitch*arduinoPitchGain)
+                isArduinoMoved = True
+                #print(arduinoPitch)
+
+                lastArduinoPitch = arduinoPitch
+
+        if (lastArduinoYaw != arduinoYaw):
+            if (lastArduinoYaw == 999):
+                lastArduinoYaw = arduinoYaw
+            else:
+                deltaYaw = lastArduinoYaw - arduinoYaw
+                deltaYaw = int(deltaYaw*arduinoYawGain)
+                isArduinoMoved = True
+                lastArduinoYaw = arduinoYaw
+
+
+        if isArduinoMoved:
+            MouseMove(-deltaYaw, deltaPitch)
+            isArduinoMoved = False
     '''
     print (x)
     print (" ")
