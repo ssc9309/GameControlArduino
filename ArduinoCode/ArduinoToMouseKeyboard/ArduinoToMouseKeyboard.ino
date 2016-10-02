@@ -1,6 +1,9 @@
 #include "Mouse.h"
 #include "Keyboard.h"
 //https://www.arduino.cc/en/Tutorial/KeyboardAndMouseControl
+//https://www.arduino.cc/en/Reference/MouseKeyboard
+//https://www.arduino.cc/en/Reference/KeyboardModifiers
+
 
 const int killSwitchPin = 3;
 const int leftClickPin = 4;
